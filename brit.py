@@ -1,27 +1,3 @@
-"""
-function whatever(w, n, T, C, a) {
-    // w: Uint8Array of 5000 length
-    // n: Uint8Array of 5000 length
-    // C = T = a: Uint8Array of 1024 length
-
-    let f = new Uint32Array(w.buffer),
-        O = new Uint32Array(n.buffer),
-        d = f.length,
-        u = 0;
-    while (256 << u < T.length)
-        u++;
-    for (let X = 0; X !== d; X++) {
-        let e = f[X],
-            F = (e & 255) << u,
-            c = (e >>> 8 & 255) << u,
-            k = (e >>> 16 & 255) << u,
-            z = T[F],
-            h = C[c],
-            g = a[k];
-        O[X] = z | h << 8 | g << 16 | e & 4278190080
-    }
-}
-"""
 from pprint import pprint
 from typing import Dict, List
 
@@ -70,11 +46,10 @@ def uint32_to_rgb(uint32_img: np.ndarray, width: int, height: int) -> np.ndarray
 
 
 def J_gZ_azc(w: Dict):
-    n = {'Ev': [], 'bH': [], 'QA': []}
+    n = {'hrzn': [], 'vrtc': []}
     for X in range(len(w)):
-        n['Ev'].append(w[X]['Hrzn'])
-        n['bH'].append(w[X]['Vrtc'])
-        n['QA'].append(True)
+        n['hrzn'].append(w[X]['Hrzn'])
+        n['vrtc'].append(w[X]['Vrtc'])
 
     return n
 
@@ -100,178 +75,135 @@ def J_gZ_aqu(w, n, m, M):
     return f
 
 
-def J_gZ_azJ(w, n, m, M):
-    if w <= n[0]:
-        return m[0]
-    if w >= n[len(n) - 1]:
-        return m[len(n) - 1]
+def J_gZ_azJ(value, hrzn, vrtc, buffer):
+    if value <= hrzn[0]:
+        return vrtc[0]
+    if value >= hrzn[len(hrzn) - 1]:
+        return vrtc[len(hrzn) - 1]
     X = 1
-    while n[X] < w:
+    while hrzn[X] < value:
         X += 1
-    y = M[X - 1]
-    return J_gZ_aqu(w, y['Ev'], y['bH'], y['M0'])
+    a, b, matrix_row = buffer[X - 1]
+    return J_gZ_aqu(value, a, b, matrix_row)
 
 
-def J_Cu_a1r(w, n, m):
-    M = w[n]
-    w[n] = w[m]
-    w[m] = M
-
-
-def J_Cu_ZI(w, n):
-    m = len(w)
+def J_Cu_ZI(matrix, buffer):
+    m = len(matrix)
 
     for M in range(m):
-        y = 0
-        T = -np.inf
+        i = 0
+        comparator = -np.inf
 
         for X in range(M, m):
-            if np.abs(w[X][M]) > T:
-                y = X
-                T = np.abs(w[X][M])
+            if np.abs(matrix[X][M]) > comparator:
+                i = X
+                comparator = np.abs(matrix[X][M])
 
-        J_Cu_a1r(w, M, y)
+        matrix[M], matrix[i] = matrix[i], matrix[M]
+
         for X in range(M + 1, m):
-            if w[M][M] == 0:
+            if matrix[M][M] == 0:
                 return 1
-            N = w[X][M] / w[M][M]
+            N = matrix[X][M] / matrix[M][M]
             for Q in range(M, m + 1):
-                w[X][Q] -= w[M][Q] * N
+                matrix[X][Q] -= matrix[M][Q] * N
 
     for X in range(m - 1, -1, -1):
-        if w[X][X] == 0:
+        if matrix[X][X] == 0:
             return 1
-        Z = w[X][m] / w[X][X]
-        n[X] = Z
+        Z = matrix[X][m] / matrix[X][X]
+        buffer[X] = Z
 
         for Q in range(X - 1, -1, -1):
-            w[Q][m] -= w[Q][X] * Z
-            w[Q][X] = 0
+            matrix[Q][m] -= matrix[Q][X] * Z
+            matrix[Q][X] = 0
     return 0
 
 
-def J_Cu_Cd(w, n):
-    m = []
-    for X in range(w):
-        m.append([])
-        for M in range(n):
-            m[X].append(0.0)
-    return m
+def magic(hrzns, vrtcs, buffer):
+    i = len(hrzns) - 1
+    matrix = np.zeros((i + 1) * (i + 2)).reshape(i + 1, i + 2)
+
+    matrix[0][0] = 2 / (hrzns[1] - hrzns[0])
+    matrix[0][1] = 1 / (hrzns[1] - hrzns[0])
+    matrix[0][i + 1] = 3 * (vrtcs[1] - vrtcs[0]) / ((hrzns[1] - hrzns[0]) * (hrzns[1] - hrzns[0]))
+    matrix[i][i - 1] = 1 / (hrzns[i] - hrzns[i - 1])
+    matrix[i][i] = 2 / (hrzns[i] - hrzns[i - 1])
+    matrix[i][i + 1] = 3 * (vrtcs[i] - vrtcs[i - 1]) / ((hrzns[i] - hrzns[i - 1]) * (hrzns[i] - hrzns[i - 1]))
+
+    for X in range(1, i):
+        matrix[X][X - 1] = 1 / (hrzns[X] - hrzns[X - 1])
+        matrix[X][X] = 2 * (1 / (hrzns[X] - hrzns[X - 1]) + 1 / (hrzns[X + 1] - hrzns[X]))
+        matrix[X][X + 1] = 1 / (hrzns[X + 1] - hrzns[X])
+        matrix[X][i + 1] = 3 * ((vrtcs[X] - vrtcs[X - 1]) / ((hrzns[X] - hrzns[X - 1]) * (hrzns[X] - hrzns[X - 1]))
+                                + (vrtcs[X + 1] - vrtcs[X]) / ((hrzns[X + 1] - hrzns[X]) * (hrzns[X + 1] - hrzns[X])))
+
+    J_Cu_ZI(matrix, buffer)
 
 
-def J_gZ_a3x(w, n, m):
-    ak = len(w) - 1
-    M = J_Cu_Cd(ak + 1, ak + 2)
-
-    for X in range(1, ak):
-
-        M[X][X - 1] = 1 / (w[X] - w[X - 1])
-        M[X][X] = 2 * (1 / (w[X] - w[X - 1]) + 1 / (w[X + 1] - w[X]))
-        M[X][X + 1] = 1 / (w[X + 1] - w[X])
-        M[X][ak + 1] = 3 * ((n[X] - n[X - 1]) / ((w[X] - w[X - 1]) * (w[X] - w[X - 1])) + (n[X + 1] - n[X]) / (
-                    (w[X + 1] - w[X]) * (w[X + 1] - w[X])))
-
-    M[0][0] = 2 / (w[1] - w[0])
-    M[0][1] = 1 / (w[1] - w[0])
-    M[0][ak + 1] = 3 * (n[1] - n[0]) / ((w[1] - w[0]) * (w[1] - w[0]))
-    M[ak][ak - 1] = 1 / (w[ak] - w[ak - 1])
-    M[ak][ak] = 2 / (w[ak] - w[ak - 1])
-    M[ak][ak + 1] = 3 * (n[ak] - n[ak - 1]) / ((w[ak] - w[ak - 1]) * (w[ak] - w[ak - 1]))
-
-    J_Cu_ZI(M, m)
-
-
-def J_gZ_a6F(Ev, bH, QA, M):
-    M0 = [*np.zeros(len(Ev))]
-    y = {'Ev': [Ev[0]], 'bH': [bH[0]], 'M0': M0}
-    M[0] = y
-
-    for X in range(1, len(Ev) - 1):
-        y['Ev'].append(Ev[X])
-        y['bH'].append(bH[X])
-
-        # Never satisfied for contrast
-        # if QA[X] is False:
-        #     J_gZ_a3x(y['Ev'], y['bH'], y['M0'])
-        #     y = {'Ev': [Ev[X]], 'bH': [bH[X]], 'M0': []}
-
-        M[X] = y
-
-    y['Ev'].append(Ev[-1])
-    y['bH'].append(bH[-1])
-    J_gZ_a3x(y['Ev'], y['bH'], y['M0'])
-    M[-1] = y
-
-
-def J_gZ_YO(w, transformer_length, is_float=False):
+def adjustment_vector_estimator(hrzn, vrtc, transformer_length):
     min_, max_ = 0, 255
-    if is_float:
-        min_, max_ = -1e9, 1e9
+    hrzn, vrtc = hrzn[:], vrtc[:]
+    y = [hrzn, vrtc, [*np.zeros(len(hrzn))]]
+    t_buffer = [y] * 4
+    magic(*y)
 
-    y = J_gZ_azc(w)
-    T = [*np.zeros(len(y['Ev']))]
-
-    J_gZ_a6F(y['Ev'], y['bH'], y['QA'], T)
-
-    N = [*np.zeros(transformer_length)]
+    adjustment_vector = [*np.zeros(transformer_length)]
     for X in range(transformer_length):
-        J = J_gZ_azJ(X * (255 / (transformer_length - 1)), y['Ev'], y['bH'], T)
-        N[X] = 1 / 255 * np.max([min_, np.min([max_, J])])
-    return N
-
-
-def J_gZ_ya(w, n, m):
-    return {
-        'Hrzn': w,
-        'Vrtc': n,
-        'Cnty': m
-    }
+        j = J_gZ_azJ(X * (255 / (transformer_length - 1)), hrzn, vrtc, t_buffer)
+        adjustment_vector[X] = 1 / 255 * np.max([min_, np.min([max_, j])])
+    return adjustment_vector
 
 
 def get_transformator(contrast_, brightness_):
-    H = 1024
-    unknown_quantity = -30 + 60 * (contrast_ + 100) / 200
+    adjustment_vector_size = 1024
 
-    R = [{'Hrzn': i / 3 * 255, 'Vrtc': i / 3 * 255, 'Cnty': True} for i in range(4)]
-    R[1]['Hrzn'] = 64
-    R[1]['Vrtc'] = 64 - unknown_quantity
-    R[2]['Hrzn'] = 128 + 64
-    R[2]['Vrtc'] = 128 + 64 + unknown_quantity
+    def for_contrast_():
+        contrast_shift = -30 + 60 * (contrast_ + 100) / 200
+        r = [[i / 3 * 255, i / 3 * 255] for i in range(4)]
+        r[1][0] = 64
+        r[1][1] = 64 - contrast_shift
+        r[2][0] = 128 + 64
+        r[2][1] = 128 + 64 + contrast_shift
 
-    sorted(R, key=lambda x: x['Hrzn'])
-    g = J_gZ_YO(R, H)
+        sorted(r, key=lambda v: v[0])
+        hrzn, vrtc = list(zip(*r))
+        return adjustment_vector_estimator(hrzn, vrtc, adjustment_vector_size)
 
-    def for_brightness_(jE, H):
-        R = []
-        ak = 3
-        for X in range(ak + 1):
-            R.append(J_gZ_ya(X / ak * 255, X / ak * 255, True))
+    def for_brightness_():
+        brightness_shift = np.abs(brightness_) / 100
+        rb = [[i / 3 * 255, i / 3 * 255] for i in range(4)]
+        rb[1][0] = 130 - brightness_shift * 26
+        rb[1][1] = 130 + brightness_shift * 51
+        rb[2][0] = 233 - brightness_shift * 48
+        rb[2][1] = 233 + brightness_shift * 10
+        hrzn, vrtc = list(zip(*rb))
+        vector = adjustment_vector_estimator(hrzn, vrtc, adjustment_vector_size)
 
-        R[1]['Hrzn'] = 130 - jE * 26
-        R[1]['Vrtc'] = 130 + jE * 51
-        R[2]['Hrzn'] = 233 - jE * 48
-        R[2]['Vrtc'] = 233 + jE * 10
-        return J_gZ_YO(R, H)
+        # Adjust values for brightness lower then 0.
+        if brightness_ < 0:
+            x = [*np.zeros(adjustment_vector_size)]
+            inverse_size = 1 / adjustment_vector_size
 
-    W = for_brightness_(np.abs(brightness_) / 100, H)
+            for index in range(adjustment_vector_size):
+                inverted_index = index * inverse_size
+                i = index
+                while vector[i] > inverted_index and i > 1:
+                    i -= 1
+                x[index] = i * inverse_size
+            vector = x
 
-    if brightness_ < 0:
-        x = [*np.zeros(H)]
-        S = 1 / H
+        return vector
 
-        for X in range(H):
-            C = X * S
-            c = X
-            while W[c] > C and c > 1:
-                c -= 1
-            x[X] = c * S
-        W = x
+    contrast_adjustment = for_contrast_()
+    brightness_adjustment = for_brightness_()
 
-    p = np.zeros(H, dtype=np.uint8)
+    adjustment_vector = np.zeros(adjustment_vector_size, dtype=np.uint8)
+    for idx in range(adjustment_vector_size):
+        ctr_index = int(np.round((adjustment_vector_size - 1) * brightness_adjustment[idx]))
+        adjustment_vector[idx] = np.round(255 * contrast_adjustment[ctr_index])
 
-    for X in range(H):
-        a = int(np.round((H - 1) * W[X]))
-        p[X] = np.round(255 * g[a])
+    return adjustment_vector
 
 
 def main():
@@ -333,7 +265,7 @@ def main():
     # path = "/home/mike/Projects/photoshop/banner-4.jpg"
     # rgb_orig = load_rgb(path).astype(np.uint8).astype(np.uint32)
 
-    get_transformator(contrast_=0, brightness_=-20)
+    print(get_transformator(contrast_=20, brightness_=-20))
 
     # Brightness
     # uint32 = transform(rgb_orig, transformer_vec)
