@@ -1,13 +1,14 @@
+from abc import abstractmethod
 from typing import Union, Tuple
 
 from photoshop._interface import Command
 from photoshop.core.error import ValidationError
 from photoshop.libs.numpy import np
-from photoshop.core.dtype import UInt8, Int, Float, UInt32, Bool, Float32
+from photoshop.core.dtype import UInt8, Int, Float, UInt32, Bool
 from photoshop.ops.transform import uint32_to_rgba
 
 
-class PhotopeaReceiver(object):
+class AbstractPhotopeaReceiver(object):
     @classmethod
     def transform(cls, rgba: UInt8, tranformation_vector: np.ndarray) -> Union[UInt8, np.ndarray]:
         """
@@ -53,6 +54,13 @@ class PhotopeaReceiver(object):
         """
         return cls.get_transformator(brightness=brit, contrast=cntr)
 
+    @staticmethod
+    @abstractmethod
+    def get_transformator(brightness: Int, contrast: Int) -> Union[UInt8, np.ndarray]:
+        pass
+
+
+class PhotopeaReceiver(AbstractPhotopeaReceiver):
     @staticmethod
     def value_rescaler(value: Float, hrzn: Tuple, vrtc: Tuple, buffer: np.ndarray) -> Float:
         # Clip.
@@ -215,78 +223,109 @@ class PhotopeaReceiver(object):
         return UInt8(adjustment_vector)
 
 
-class PhotopeaLegacyReceiver(object):
-    pass
+class PhotopeaLegacyReceiver(AbstractPhotopeaReceiver):
+    @staticmethod
+    def multiply(c, b):
+        matrix = np.zeros(16)
+        matrix[0] = c[0] * b[0] + c[1] * b[4] + c[2] * b[8] + c[3] * b[12]
+        matrix[1] = c[0] * b[1] + c[1] * b[5] + c[2] * b[9] + c[3] * b[13]
+        matrix[2] = c[0] * b[2] + c[1] * b[6] + c[2] * b[10] + c[3] * b[14]
+        matrix[3] = c[0] * b[3] + c[1] * b[7] + c[2] * b[11] + c[3] * b[15]
+        matrix[4] = c[4] * b[0] + c[5] * b[4] + c[6] * b[8] + c[7] * b[12]
+        matrix[5] = c[4] * b[1] + c[5] * b[5] + c[6] * b[9] + c[7] * b[13]
+        matrix[6] = c[4] * b[2] + c[5] * b[6] + c[6] * b[10] + c[7] * b[14]
+        matrix[7] = c[4] * b[3] + c[5] * b[7] + c[6] * b[11] + c[7] * b[15]
+        matrix[8] = c[8] * b[0] + c[9] * b[4] + c[10] * b[8] + c[11] * b[12]
+        matrix[9] = c[8] * b[1] + c[9] * b[5] + c[10] * b[9] + c[11] * b[13]
+        matrix[10] = c[8] * b[2] + c[9] * b[6] + c[10] * b[10] + c[11] * b[14]
+        matrix[11] = c[8] * b[3] + c[9] * b[7] + c[10] * b[11] + c[11] * b[15]
+        matrix[12] = c[12] * b[0] + c[13] * b[4] + c[14] * b[8] + c[15] * b[12]
+        matrix[13] = c[12] * b[1] + c[13] * b[5] + c[14] * b[9] + c[15] * b[13]
+        matrix[14] = c[12] * b[2] + c[13] * b[6] + c[14] * b[10] + c[15] * b[14]
+        matrix[15] = c[12] * b[3] + c[13] * b[7] + c[14] * b[11] + c[15] * b[15]
+        return matrix
 
+    @staticmethod
+    def clip(w):
+        return np.clip(~~(w + 0.5).astype(Int), 0, 255)
 
-class LegacyReceiver(object):
     @classmethod
-    def transform(cls, rgba: UInt8, brit: Int, cntr: Int) -> Union[UInt8, np.ndarray]:
+    def product_transform(cls, u, v, prodcut):
+        v[0] = cls.clip(prodcut[0] * u[0] + prodcut[1] * u[1] + prodcut[2] * u[2] + prodcut[3] * 255)
+        v[1] = cls.clip(prodcut[4] * u[0] + prodcut[5] * u[1] + prodcut[6] * u[2] + prodcut[7] * 255)
+        v[2] = cls.clip(prodcut[8] * u[0] + prodcut[9] * u[1] + prodcut[10] * u[2] + prodcut[11] * 255)
+
+    @classmethod
+    def get_transformator(cls, brightness: Int, contrast: Int) -> Union[UInt8, np.ndarray]:
+        brit = brightness / 255
+        cntr = 1 + contrast / 100
+
+        if cntr > 1:
+            cntr = 1 + np.tan(np.pi / 2 * contrast / 101)
+
+        h = (1 - cntr) / 2
+        brit_transformer = [1, 0, 0, brit, 0, 1, 0, brit, 0, 0, 1, brit, 0, 0, 0, 1]
+        cntr_transformer = [cntr, 0, 0, h, 0, cntr, 0, h, 0, 0, cntr, h, 0, 0, 0, 1]
+
+        prodcut = cls.multiply(cntr_transformer, brit_transformer)
+        transform_buffer = [np.arange(256, dtype=UInt8), np.zeros(256, dtype=UInt8), np.zeros(256, dtype=UInt8)]
+
+        cls.product_transform(transform_buffer, transform_buffer, prodcut)
+
+        return transform_buffer[0]
+
+
+class StdReceiver(object):
+    @classmethod
+    def transform(cls, rgba: np.ndarray, brit: Float, cntr: Float, absolute: Bool = False) -> np.ndarray:
         """
-        Proide Brightness/Contrast adjustment.
-
-        :param rgba: Uint8;
-        :param brit: Int;
-        :param cntr: Int;
-        :return: Union[UInt8, np.ndarray];
+        Mimic cv2.convertScaleAbs behavior when absolute is set as True.
+        :param rgba:
+        :param brit:
+        :param cntr:
+        :param absolute:
+        :return:
         """
-        rgba = cls._brightness(rgba=rgba, brightness=brit)
-        rgba = cls._contrast(rgba=rgba, contrast=cntr)
-        return rgba.astype(UInt8)
+        adjusted = cntr * rgba.astype(float) + brit
+        if absolute:
+            adjusted = np.abs(adjusted)
+        return np.clip(adjusted, 0, 255).astype(UInt8)
 
-    @staticmethod
-    def _brightness(rgba: np.ndarray, brightness: Int) -> np.ndarray:
-        """
-        Adjust brightness in really old fashion way.
 
-        :param rgba: np.ndarray;
-        :param brightness: Int;
-        :return: np.ndarray;
-        """
-        if brightness == 0:
-            return rgba
+class AutoCntr(Command):
+    def __init__(
+            self,
+            receiver: StdReceiver,
+            rgba: np.ndarray,
+            brit: Float,
+            cntr: Float
+    ) -> None:
+        if not isinstance(rgba, np.ndarray) and rgba.dtype not in (UInt8,):
+            raise TypeError('Invalid image type. Expected numpy.uint8 in shape h x w x 4')
 
-        # ! Do not rewrite to augmented assignemnt ( += form ) since it will affect original file !
-        img = rgba.astype(Float32) + brightness
-        return np.clip(img, 0, 255)
+        super(AutoCntr, self).__init__()
+        self._rgba = rgba.copy()
+        self._receiver = receiver
+        self._brightness = brit
+        self._contrast = cntr
 
-    @staticmethod
-    def _contrast(rgba: np.ndarray, contrast: Int) -> np.ndarray:
-        """
-        Adjust contrast in really old fashion way.
-
-        :param rgba: np.ndarray;
-        :param contrast: Int;
-        :return: np.ndarray;
-        """
-        if contrast == 0:
-            return rgba
-
-        # Rescale from original mented <-255, 255> to Photoshop like <-100, 100> scale. 
-        new_scale_min, new_scale_max = -100., 100.
-        old_scale_min, old_scale_max = -255., 255.
-        new_scale_range = new_scale_max - new_scale_min
-        old_scale_range = old_scale_max - old_scale_min
-
-        # 0 to 129.5
-        contrast = ((contrast - new_scale_min) * old_scale_range / new_scale_range) + old_scale_min
-        factor = (259.0 * (contrast + 255.0)) / (255.0 * (259.0 - contrast))
-
-        img = factor * (rgba.astype(Float32) - 128) + 128
-        return np.clip(img, 0, 255).astype(UInt8)
+    def execute(self) -> None:
+        self._result = self._receiver.transform(rgba=self._rgba, brit=self._brightness, cntr=self._contrast)
 
 
 class BritCntr(Command):
     def __init__(
             self,
-            receiver: Union[PhotopeaReceiver, LegacyReceiver],
+            receiver: Union[PhotopeaReceiver, PhotopeaLegacyReceiver],
             rgba: np.ndarray,
             brit: Int,
             cntr: Int,
             legacy: Bool = False
     ) -> None:
-        if not isinstance(rgba, np.ndarray) and rgba.dtype not in (UInt8, ):
+        if not isinstance(rgba, np.ndarray) and rgba.dtype not in (UInt8,):
             raise TypeError('Invalid image type. Expected numpy.uint8 in shape h x w x 4')
+
+        super(BritCntr, self).__init__()
 
         self._rgba = rgba.copy()
         self._receiver = receiver
@@ -303,25 +342,19 @@ class BritCntr(Command):
         if not (-100 <= self._contrast <= 100):
             raise ValidationError('Invalid value for Contrast. Allowed inderval is [-100, 150]')
 
-    @property
-    def result(self):
-        return self._result
-
     def execute(self) -> None:
+        receiver: PhotopeaReceiver = self._receiver
         if self._legacy:
-            receiver: LegacyReceiver = self._receiver
-            rgba = receiver.transform(self._rgba, self._brightness, self._contrast)
-        else:
-            receiver: PhotopeaReceiver = self._receiver
-            trasnformation_vector = receiver.transformation_vector(self._brightness, self._contrast)
-            rgba = self._receiver.transform(self._rgba, tranformation_vector=trasnformation_vector)
+            receiver: PhotopeaLegacyReceiver = self._receiver
+        trasnformation_vector = receiver.transformation_vector(self._brightness, self._contrast)
+        rgba = self._receiver.transform(self._rgba, tranformation_vector=trasnformation_vector)
         self._result = rgba
 
 
 def brightness_contrast__(rgba: np.ndarray, brightness: int, contrast: int, use_legacy: bool = False) -> np.ndarray:
     """
     User facing method for Brightness/Contrast adjustment.
-    Photoshop: Edit -> Adjustment -> Brightness/Contrast
+    Photoshop: Image -> Adjustment -> Brightness/Contrast
 
     :param rgba: np.ndarray;
     :param brightness: Int;
@@ -331,18 +364,18 @@ def brightness_contrast__(rgba: np.ndarray, brightness: int, contrast: int, use_
     """
     receiver_cls = PhotopeaReceiver
     if use_legacy:
-        receiver_cls = LegacyReceiver
+        receiver_cls = PhotopeaLegacyReceiver
 
     receiver = receiver_cls()
-    brit_cntr = BritCntr(rgba=rgba, receiver=receiver, brit=brightness, cntr=contrast, legacy=use_legacy)
-    brit_cntr.execute()
-    return brit_cntr.result
+    command = BritCntr(rgba=rgba, receiver=receiver, brit=brightness, cntr=contrast, legacy=use_legacy)
+    command.execute()
+    return command.result
 
 
 def brightness__(rgba: np.ndarray, brightness: int, use_legacy: bool = False) -> np.ndarray:
     """
     User facing method for Brightness adjustment.
-    Photoshop: Edit -> Adjustment -> Brightness/Contrast
+    Mimic Photoshop: Edit -> Adjustment -> Brightness/Contrast
 
     :param rgba: np.ndarray;
     :param brightness: Int;
@@ -355,7 +388,7 @@ def brightness__(rgba: np.ndarray, brightness: int, use_legacy: bool = False) ->
 def contrast__(rgba: np.ndarray, contrast: int, use_legacy: bool = False) -> np.ndarray:
     """
     User facing method for Contrast adjustment.
-    Photoshop: Edit -> Adjustment -> Brightness/Contrast
+    Mimic Mimic Photoshop: Edit -> Adjustment -> Brightness/Contrast
 
     :param rgba: np.ndarray;
     :param contrast: Int;
@@ -363,3 +396,13 @@ def contrast__(rgba: np.ndarray, contrast: int, use_legacy: bool = False) -> np.
     :return: np.ndarray;
     """
     return brightness_contrast__(rgba=rgba, brightness=0, contrast=contrast, use_legacy=use_legacy)
+
+
+def auto_contrast__(rgba: np.ndarray):
+    """
+    Mimic Photoshop: Edit -> Adjustment -> Auto Contrast
+
+    :param rgba: np.ndarray;
+    :return: np.ndarray;
+    """
+    pass

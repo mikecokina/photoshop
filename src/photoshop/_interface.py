@@ -6,6 +6,12 @@ class Command(metaclass=ABCMeta):
     """
     The Command interface declares a method for executing a command.
     """
+    def __init__(self, *args, **kwargs):
+        self._result = None
+
+    @property
+    def result(self):
+        return self._result
 
     @abstractmethod
     def execute(self) -> None:
