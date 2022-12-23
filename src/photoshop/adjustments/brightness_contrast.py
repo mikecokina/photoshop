@@ -230,12 +230,12 @@ class LegacyReceiver(object):
         :param cntr: Int;
         :return: Union[UInt8, np.ndarray];
         """
-        rgba = cls.brightness(rgba=rgba, brightness=brit)
-        rgba = cls.contrast(rgba=rgba, contrast=cntr)
+        rgba = cls._brightness(rgba=rgba, brightness=brit)
+        rgba = cls._contrast(rgba=rgba, contrast=cntr)
         return rgba.astype(UInt8)
 
     @staticmethod
-    def brightness(rgba: np.ndarray, brightness: Int) -> np.ndarray:
+    def _brightness(rgba: np.ndarray, brightness: Int) -> np.ndarray:
         """
         Adjust brightness in really old fashion way.
 
@@ -243,12 +243,15 @@ class LegacyReceiver(object):
         :param brightness: Int;
         :return: np.ndarray;
         """
+        if brightness == 0:
+            return rgba
+
         # ! Do not rewrite to augmented assignemnt ( += form ) since it will affect original file !
         img = rgba.astype(Float32) + brightness
         return np.clip(img, 0, 255)
 
     @staticmethod
-    def contrast(rgba: np.ndarray, contrast: Int) -> np.ndarray:
+    def _contrast(rgba: np.ndarray, contrast: Int) -> np.ndarray:
         """
         Adjust contrast in really old fashion way.
 
@@ -256,6 +259,9 @@ class LegacyReceiver(object):
         :param contrast: Int;
         :return: np.ndarray;
         """
+        if contrast == 0:
+            return rgba
+
         # Rescale from original mented <-255, 255> to Photoshop like <-100, 100> scale. 
         new_scale_min, new_scale_max = -100., 100.
         old_scale_min, old_scale_max = -255., 255.
@@ -303,12 +309,12 @@ class BritCntr(Command):
 
     def execute(self) -> None:
         if self._legacy:
+            receiver: LegacyReceiver = self._receiver
+            rgba = receiver.transform(self._rgba, self._brightness, self._contrast)
+        else:
             receiver: PhotopeaReceiver = self._receiver
             trasnformation_vector = receiver.transformation_vector(self._brightness, self._contrast)
             rgba = self._receiver.transform(self._rgba, tranformation_vector=trasnformation_vector)
-        else:
-            receiver: LegacyReceiver = self._receiver
-            rgba = receiver.transform(self._rgba, self._brightness, self._contrast)
         self._result = rgba
 
 
@@ -328,7 +334,7 @@ def brightness_contrast__(rgba: np.ndarray, brightness: int, contrast: int, use_
         receiver_cls = LegacyReceiver
 
     receiver = receiver_cls()
-    brit_cntr = BritCntr(rgba=rgba, receiver=receiver, brit=brightness, cntr=contrast)
+    brit_cntr = BritCntr(rgba=rgba, receiver=receiver, brit=brightness, cntr=contrast, legacy=use_legacy)
     brit_cntr.execute()
     return brit_cntr.result
 
