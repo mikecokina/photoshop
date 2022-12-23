@@ -3,9 +3,10 @@ from typing import Union, Tuple
 
 from photoshop._interface import Command
 from photoshop.core.error import ValidationError
+from photoshop.core.typing import GetItem, SetItem
 from photoshop.libs.numpy import np
 from photoshop.core.dtype import UInt8, Int, Float, UInt32, Bool
-from photoshop.ops.transform import uint32_to_rgba
+from photoshop.ops.transform import uint32_to_rgba, rgba_to_gray
 
 
 class AbstractPhotopeaReceiver(object):
@@ -225,7 +226,7 @@ class PhotopeaReceiver(AbstractPhotopeaReceiver):
 
 class PhotopeaLegacyReceiver(AbstractPhotopeaReceiver):
     @staticmethod
-    def multiply(c, b):
+    def multiply(c: GetItem, b: GetItem) -> np.ndarray:
         matrix = np.zeros(16)
         matrix[0] = c[0] * b[0] + c[1] * b[4] + c[2] * b[8] + c[3] * b[12]
         matrix[1] = c[0] * b[1] + c[1] * b[5] + c[2] * b[9] + c[3] * b[13]
@@ -246,11 +247,11 @@ class PhotopeaLegacyReceiver(AbstractPhotopeaReceiver):
         return matrix
 
     @staticmethod
-    def clip(w):
+    def clip(w: np.ndarray):
         return np.clip(~~(w + 0.5).astype(Int), 0, 255)
 
     @classmethod
-    def product_transform(cls, u, v, prodcut):
+    def product_transform(cls, u: GetItem, v: SetItem, prodcut: np.ndarray):
         v[0] = cls.clip(prodcut[0] * u[0] + prodcut[1] * u[1] + prodcut[2] * u[2] + prodcut[3] * 255)
         v[1] = cls.clip(prodcut[4] * u[0] + prodcut[5] * u[1] + prodcut[6] * u[2] + prodcut[7] * 255)
         v[2] = cls.clip(prodcut[8] * u[0] + prodcut[9] * u[1] + prodcut[10] * u[2] + prodcut[11] * 255)
@@ -275,17 +276,58 @@ class PhotopeaLegacyReceiver(AbstractPhotopeaReceiver):
         return transform_buffer[0]
 
 
-class StdReceiver(object):
+class AutoCntrReceiver(object):
+    @staticmethod
+    def histogram_clip(rgba: np.ndarray, clip_hist_percent: Int = 1) -> Tuple:
+        """
+        Find cutout colors threshold from given image based on histogram.
+
+        :param rgba: np.ndarray;
+        :param clip_hist_percent: Int
+        :return: Tuple[Float, Float];
+        """
+        # Transform to gray scale.
+        gray = rgba_to_gray(rgba)
+
+        # Calculate histogram of gray scaled image.
+        hist, _ = np.histogram(gray, bins=256)
+        hist_size = len(hist)
+
+        # Calculate cumulative distribution from the histogram
+        accumulator = np.cumsum(hist)
+
+        # Locate points to clip.
+        # Idea is to remove too white/black pixels (set them 0/255) if their currendistribution is bellow
+        # given threshold (clip_hist_percent).
+        clip_hist_percent *= (accumulator.max() / 100.0)
+        clip_hist_percent /= 2.0
+
+        # Locate left cut
+        minimum_gray = 0
+        while accumulator[minimum_gray] < clip_hist_percent:
+            minimum_gray += 1
+
+        # Locate right cut
+        maximum_gray = hist_size - 1
+        while accumulator[maximum_gray] >= (accumulator.max() - clip_hist_percent):
+            maximum_gray -= 1
+
+        # Calculate contrast and brightness values.
+        contrast = 255 / (maximum_gray - minimum_gray)
+        brightness = - minimum_gray * contrast
+
+        return brightness, contrast
+
     @classmethod
-    def transform(cls, rgba: np.ndarray, brit: Float, cntr: Float, absolute: Bool = False) -> np.ndarray:
+    def transform(cls, rgba: np.ndarray) -> Union[np.ndarray, UInt8]:
         """
         Mimic cv2.convertScaleAbs behavior when absolute is set as True.
-        :param rgba:
-        :param brit:
-        :param cntr:
-        :param absolute:
-        :return:
+
+        :param rgba: np.ndarray;
+        :return: Union[np.ndarray, UInt8];
         """
+        absolute: Bool = False
+        brit, cntr = cls.histogram_clip(rgba)
         adjusted = cntr * rgba.astype(float) + brit
         if absolute:
             adjusted = np.abs(adjusted)
@@ -295,22 +337,20 @@ class StdReceiver(object):
 class AutoCntr(Command):
     def __init__(
             self,
-            receiver: StdReceiver,
-            rgba: np.ndarray,
-            brit: Float,
-            cntr: Float
+            receiver: AutoCntrReceiver,
+            rgba: np.ndarray
     ) -> None:
-        if not isinstance(rgba, np.ndarray) and rgba.dtype not in (UInt8,):
-            raise TypeError('Invalid image type. Expected numpy.uint8 in shape h x w x 4')
-
         super(AutoCntr, self).__init__()
         self._rgba = rgba.copy()
         self._receiver = receiver
-        self._brightness = brit
-        self._contrast = cntr
+        self.validator()
 
     def execute(self) -> None:
-        self._result = self._receiver.transform(rgba=self._rgba, brit=self._brightness, cntr=self._contrast)
+        self._result = self._receiver.transform(self._rgba)
+
+    def validator(self):
+        if not isinstance(self._rgba, np.ndarray) or self._rgba.dtype not in (UInt8,):
+            raise TypeError('Invalid image type. Expected numpy.uint8 in shape h x w x 4')
 
 
 class BritCntr(Command):
@@ -322,9 +362,6 @@ class BritCntr(Command):
             cntr: Int,
             legacy: Bool = False
     ) -> None:
-        if not isinstance(rgba, np.ndarray) and rgba.dtype not in (UInt8,):
-            raise TypeError('Invalid image type. Expected numpy.uint8 in shape h x w x 4')
-
         super(BritCntr, self).__init__()
 
         self._rgba = rgba.copy()
@@ -333,10 +370,11 @@ class BritCntr(Command):
         self._contrast = cntr
         self._legacy = legacy
         self._result = None
-
         self.validator()
 
     def validator(self):
+        if not isinstance(self._rgba, np.ndarray) or self._rgba.dtype not in (UInt8,):
+            raise TypeError('Invalid image type. Expected numpy.uint8 in shape h x w x 4')
         if not (-150 <= self._brightness <= 150):
             raise ValidationError('Invalid value for Brightness. Allowed interval is [-150, 150].')
         if not (-100 <= self._contrast <= 100):
@@ -405,4 +443,7 @@ def auto_contrast__(rgba: np.ndarray):
     :param rgba: np.ndarray;
     :return: np.ndarray;
     """
-    pass
+    receiver = AutoCntrReceiver()
+    command = AutoCntr(receiver, rgba=rgba)
+    command.execute()
+    return command.result

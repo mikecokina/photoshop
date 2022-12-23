@@ -7,7 +7,14 @@ class GetItem(Protocol):
         pass
 
 
+class SetItem(Protocol):
+    # noinspection PyUnresolvedReferences
+    def __setitem__(self: 'SetItem', key: Any, value: Any) -> Any:
+        pass
+
+
 __all__ = (
     'GetItem',
+    'SetItem',
     'Numeric',
 )
