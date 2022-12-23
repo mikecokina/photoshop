@@ -1,24 +1,24 @@
-from abc import ABC
-from pathlib import Path
-from unittest import TestCase
+from numpy import array_equal
+from parameterized import parameterized
 
+from photoshop import brightness_contrast
+from photoshop.core.dtype import UInt8
 
-class DataTestCase(TestCase, ABC):
-    DATA_DIR = Path(__file__).parent / 'data'
+from tests.utils import DataTestCase
 
 
 class BrightnessContrastTestCase(DataTestCase):
-    def test_input_output_dtype(self):
-        pass
+    @parameterized.expand([(True, ), (False, )])
+    def test_io_original_unchanged(self, legacy):
+        rgba = self.EXPECTED_RGBA.copy()
+        _ = brightness_contrast(rgba, brightness=10, contrast=10, use_legacy=legacy)
+        assert array_equal(rgba, self.EXPECTED_RGBA) is True
 
-    def test_legacy_brightness_and_contrast(self):
-        pass
+    @parameterized.expand([(True,), (False,)])
+    def test_io_dtype(self, legacy):
+        rgba = self.EXPECTED_RGBA
+        adjusted = brightness_contrast(rgba, brightness=10, contrast=10, use_legacy=legacy)
+        assert adjusted.dtype == UInt8
 
     def test_brightness_and_contrast(self):
-        pass
-
-    def test_input_output_legacy_brightness_dtype(self):
-        pass
-
-    def test_input_output_legacy_contrast_dtype(self):
         pass
