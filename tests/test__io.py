@@ -10,7 +10,7 @@ from tests.utils import DataTestCase
 class LoadRGBATestCase(DataTestCase):
     def test_loaded(self):
         obtained = load_rgba(str(self.RGBA_IMAGE_PATH))
-        array_equal(self.EXPECTED_RGBA, obtained)
+        array_equal(self.DEFAULT_RGBA, obtained)
 
     def test_loaded_pixel_range(self):
         obtained = load_rgba(str(self.RGBA_IMAGE_PATH))
