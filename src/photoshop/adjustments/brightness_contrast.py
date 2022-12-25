@@ -6,6 +6,7 @@ from photoshop.core.error import ValidationError
 from photoshop.core.typing import GetItem, SetItem
 from photoshop.libs.numpy import np
 from photoshop.core.dtype import UInt8, Int, Float, UInt32, Bool
+from photoshop.ops.hist import histogram_clip
 from photoshop.ops.transform import uint32_to_rgba, rgba_to_gray
 
 
@@ -283,34 +284,12 @@ class AutoCntrReceiver(object):
         Find cutout colors threshold from given image based on histogram.
 
         :param rgba: np.ndarray;
-        :param clip_hist_percent: Int
+        :param clip_hist_percent: Int;
         :return: Tuple[Float, Float];
         """
         # Transform to gray scale.
         gray = rgba_to_gray(rgba)
-
-        # Calculate histogram of gray scaled image.
-        hist, _ = np.histogram(gray, bins=256)
-        hist_size = len(hist)
-
-        # Calculate cumulative distribution from the histogram
-        accumulator = np.cumsum(hist)
-
-        # Locate points to clip.
-        # Idea is to remove too white/black pixels (set them 0/255) if their currendistribution is bellow
-        # given threshold (clip_hist_percent).
-        clip_hist_percent *= (accumulator.max() / 100.0)
-        clip_hist_percent /= 2.0
-
-        # Locate left cut
-        minimum_gray = 0
-        while accumulator[minimum_gray] < clip_hist_percent:
-            minimum_gray += 1
-
-        # Locate right cut
-        maximum_gray = hist_size - 1
-        while accumulator[maximum_gray] >= (accumulator.max() - clip_hist_percent):
-            maximum_gray -= 1
+        minimum_gray, maximum_gray = histogram_clip(ndarray=gray, clip_hist_percent=clip_hist_percent)
 
         # Calculate contrast and brightness values.
         contrast = 255 / (maximum_gray - minimum_gray)
