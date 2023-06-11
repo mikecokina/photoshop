@@ -46,3 +46,21 @@ def rgba_to_gray(rgba: Union[UInt8, UInt32, np.ndarray]) -> Union[UInt8, UInt32,
     # noinspection PyUnresolvedReferences
     gray = cv2.cvtColor(rgba, cv2.COLOR_RGBA2GRAY)
     return gray.astype(rgba.dtype)
+
+
+def expand_as_rgba(image: np.ndarray) -> np.ndarray:
+    """
+    Takes 3 or 4 channel images (RGB, RGBA) and add alpha layer if missing.
+
+    :param image: np.ndarray; image of shape (height, width, channels)
+    :return: np.ndarray; image of shape (height, width, 4)
+    """
+    # Add alpha-channels, if they are not provided
+    try:
+        if image.shape[2] == 3:
+            return np.dstack((image, np.ones(image.shape[:2] + (1,)) * 255)).astype(np.uint8)
+        elif image.shape[2] != 4:
+            raise IndexError("")
+    except IndexError:
+        raise TypeError("Invalid image type. Expecting RGB or RGBA!")
+    return image
