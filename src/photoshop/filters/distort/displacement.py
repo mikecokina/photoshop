@@ -1,7 +1,3 @@
-from typing import Tuple
-
-import cv2
-
 from photoshop.blend.normal import normal_complex_blend_if
 from photoshop.libs.numpy import np
 from photoshop.core.dtype import UInt8
@@ -60,35 +56,6 @@ def displacement_filter(image: np.ndarray, displacement_map: np.ndarray, strengt
             result_array[y, x] = interpolated_pixel.astype(UInt8)
 
     return result_array
-
-
-def normal(background, foreground, opacity):
-    background_norm = background / 255.0
-    foreground_norm = foreground / 255.0
-
-    # Add alpha-channels, if they are not provided
-    if background_norm.shape[2] == 3:
-        background_norm = np.dstack((background_norm, np.zeros(background_norm.shape[:2] + (3,))))
-    if foreground_norm.shape[2] == 3:
-        foreground_norm = np.dstack((foreground_norm, np.zeros(foreground_norm.shape[:2] + (3,))))
-
-    # Extract alpha-channels and apply opacity
-    bak_a = np.expand_dims(background_norm[:, :, 3], 2)  # alpha of b, prepared for broadcasting
-    bak_a = np.ones(bak_a.shape)
-    fak_a = np.expand_dims(foreground_norm[:, :, 3], 2) * opacity  # alpha of a, prepared for broadcasting
-
-    # Blend images
-    c_out = (foreground_norm[:, :, :3] * fak_a + background_norm[:, :, :3] * bak_a * (1 - fak_a)) / (fak_a + bak_a * (1 - fak_a))
-
-    # Blend alpha
-    cout_alp = fak_a + bak_a * (1 - fak_a)
-
-    # Combine image and alpha
-    c_out = np.dstack((c_out, cout_alp))
-
-    np.nan_to_num(c_out, copy=False)
-
-    return c_out * 255.0
 
 
 # noinspection PyUnreachableCode
