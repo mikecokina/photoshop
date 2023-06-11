@@ -2,7 +2,7 @@ from typing import Tuple
 
 import cv2
 
-from photoshop.blend.normal import normal_blend_if, normal_complex_blend_if
+from photoshop.blend.normal import normal_complex_blend_if
 from photoshop.libs.numpy import np
 from photoshop.core.dtype import UInt8
 from PIL import Image
@@ -104,42 +104,35 @@ def main():
     # cv2.imshow('window', blended_img_uint8)
     # cv2.waitKey()  # Press a key to close window with the image.
 
+    if False:
+        layer = np.asarray(Image.open('../../../../text.png').convert('RGBA'), dtype=UInt8)  # noqa
+        displacement_map = np.asarray(Image.open('../../../../map.png'), dtype=UInt8)  # noqa
+        underlying_layer = np.asarray(Image.open('../../../../base.jpg').convert('RGBA'), dtype=UInt8) # noqa
 
-    layer = np.asarray(Image.open('../../../../text.png').convert('RGBA'), dtype=UInt8)  # noqa
-    displacement_map = np.asarray(Image.open('../../../../map.png'), dtype=UInt8)  # noqa
-    underlying_layer = np.asarray(Image.open('../../../../base.jpg').convert('RGBA'), dtype=UInt8) # noqa
+        filtered_image = displacement_filter(layer, displacement_map, strength=10)
 
-    filtered_image = displacement_filter(layer, displacement_map, strength=10)
+        Image.fromarray(filtered_image).save('../../../../text_warp.png')
 
-    Image.fromarray(filtered_image).save('../../../../text_warp.png')
+        blended = normal_complex_blend_if(
+            filtered_image,
+            underlying_layer,
+            underlying_layer_shadows_range=(0, 50),
+            underlying_layer_highlights_range=(255, 255)
+        )
+        Image.fromarray(blended).show()
 
-    blended = normal_complex_blend_if(
-        filtered_image,
-        underlying_layer,
-        underlying_layer_shadows_range=(0, 50),
-        underlying_layer_highlights_range=(255, 255)
-    )
-    Image.fromarray(blended).show()
-    exit()
-
-    # if False:
-    #     filtered_image = displacement_filter(layer, displacement_map, strength=10)
-    #     # noinspection PyTypeChecker
-    #     foreground = np.asarray(filtered_image, dtype=UInt8)
-    #     # noinspection PyTypeChecker
-    #     underlying_layer = np.asarray(underlying_layer, dtype=UInt8)
-    #
-
-    foreground = (np.ones((500, 500, 3))).astype(UInt8)
-    foreground[:, :, 1] = foreground[:, :, 1] * 255
-    # noinspection PyTypeChecker
-    underlying_layer = np.array(Image.open('../../../../foreground.png').convert('RGBA'))
-    blended = normal_complex_blend_if(
-        foreground,
-        underlying_layer,
-        underlying_layer_shadows_range=(0, 255)
-    )
-    Image.fromarray(blended).show()
+    if True:
+        foreground = (np.ones((500, 500, 3))).astype(UInt8)
+        foreground[:, :, 1] = foreground[:, :, 1] * 255
+        # noinspection PyTypeChecker
+        underlying_layer = np.array(Image.open('../../../../foreground.png').convert('RGBA'))
+        blended = normal_complex_blend_if(
+            foreground,
+            underlying_layer,
+            underlying_layer_shadows_range=(0, 0),
+            underlying_layer_highlights_range=(250, 255)
+        )
+        Image.fromarray(blended).show()
 
 
 if __name__ == '__main__':

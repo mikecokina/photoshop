@@ -4,7 +4,7 @@ import cv2
 
 from photoshop.core.typing import GetItem, Numeric
 from photoshop.libs.numpy import np
-from photoshop.core.dtype import Int, UInt8, UInt32
+from photoshop.core.dtype import Int, UInt8, UInt32, Float32
 
 
 def shift_scale(value: Union[np.ndarray, Numeric], old_scale: GetItem, new_scale: GetItem):
@@ -64,3 +64,19 @@ def expand_as_rgba(image: np.ndarray) -> np.ndarray:
     except IndexError:
         raise TypeError("Invalid image type. Expecting RGB or RGBA!")
     return image
+
+
+def rgb_to_luminosity(rgb: np.ndarray) -> np.ndarray:
+    """
+    Compute approximate luminosity for given RGB/A image.
+
+
+    :param rgb: np.ndarray; Image in shape (h, w, 3 or 4)
+    :return: np.ndarray; Luminosity in shape (h, w)
+    """
+    int_dtypes = (UInt8, UInt32, Int)
+    original_type = rgb.dtype
+    if original_type in int_dtypes:
+        rgb = rgb.astype(Float32) / 255.0
+    luminosity = 0.299 * rgb[:, :, 0] + 0.587 * rgb[:, :, 1] + 0.114 * rgb[:, :, 2]
+    return (luminosity * 255).astype(original_type) if original_type in int_dtypes else luminosity
