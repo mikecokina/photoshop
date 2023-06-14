@@ -1,12 +1,20 @@
-from photoshop.blend.normal import normal_complex_blend_if
-from photoshop.libs.numpy import np
-from photoshop.core.dtype import UInt8
 from PIL import Image
 
-from photoshop.ops.transform import expand_as_rgba
+from ...libs.numpy import np
+from ...core.dtype import UInt8, Float
+from ...ops.transform import expand_as_rgba
 
 
-def displacement_filter(image: np.ndarray, displacement_map: np.ndarray, strength: float) -> np.ndarray:
+def displacement_filter(image: np.ndarray, displacement_map: np.ndarray, strength: Float) -> np.ndarray:
+    """
+    Compute displacement of image based on supplied displacement map.
+
+    :param image: np.ndarray; Image of shape (h x w x 3) or (h x w x 4)
+    :param displacement_map:  Image of shape (h x w x 3)
+    :param strength: Float; strength of displacemepnt
+    :return: np.ndaray; Image of shape (h x w x 4)
+    """
+    # TODO: sanitize input (image and map should have same w x h; or resize properly)
     # Extend image with alpha channel if not presented
     image = expand_as_rgba(image).astype(UInt8)
 
@@ -56,51 +64,3 @@ def displacement_filter(image: np.ndarray, displacement_map: np.ndarray, strengt
             result_array[y, x] = interpolated_pixel.astype(UInt8)
 
     return result_array
-
-
-# noinspection PyUnreachableCode
-def main():
-    # Example usage
-    import cv2  # import OpenCV
-    import numpy
-
-    # background_img_float = cv2.imread('../../../../base.jpg', -1).astype(float)
-    # foreground_img_float = cv2.imread('../../../../text.png', -1).astype(float)
-    # blended_img_float = normal(background_img_float, foreground_img_float, opacity=1)
-    # blended_img_uint8 = blended_img_float.astype(numpy.uint8)
-    # cv2.imshow('window', blended_img_uint8)
-    # cv2.waitKey()  # Press a key to close window with the image.
-
-    if False:
-        layer = np.asarray(Image.open('../../../../text.png').convert('RGBA'), dtype=UInt8)  # noqa
-        displacement_map = np.asarray(Image.open('../../../../map.png'), dtype=UInt8)  # noqa
-        underlying_layer = np.asarray(Image.open('../../../../base.jpg').convert('RGBA'), dtype=UInt8) # noqa
-
-        filtered_image = displacement_filter(layer, displacement_map, strength=10)
-
-        Image.fromarray(filtered_image).save('../../../../text_warp.png')
-
-        blended = normal_complex_blend_if(
-            filtered_image,
-            underlying_layer,
-            underlying_layer_shadows_range=(0, 50),
-            underlying_layer_highlights_range=(255, 255)
-        )
-        Image.fromarray(blended).show()
-
-    if True:
-        foreground = (np.ones((500, 500, 3))).astype(UInt8)
-        foreground[:, :, 1] = foreground[:, :, 1] * 255
-        # noinspection PyTypeChecker
-        underlying_layer = np.array(Image.open('../../../../foreground.png').convert('RGBA'))
-        blended = normal_complex_blend_if(
-            foreground,
-            underlying_layer,
-            underlying_layer_shadows_range=(0, 0),
-            underlying_layer_highlights_range=(250, 255)
-        )
-        Image.fromarray(blended).show()
-
-
-if __name__ == '__main__':
-    main()
