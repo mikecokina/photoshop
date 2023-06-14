@@ -1,6 +1,6 @@
 import numpy as np
 
-from photoshop.core.dtype import Int
+from ..core.dtype import Int
 
 
 def histogram_clip(ndarray: np.ndarray, clip_hist_percent: Int):

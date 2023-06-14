@@ -2,9 +2,9 @@ from typing import Union
 
 import cv2
 
-from photoshop.core.typing import GetItem, Numeric
-from photoshop.libs.numpy import np
-from photoshop.core.dtype import Int, UInt8, UInt32, Float32
+from ..core.typing import GetItem, Numeric
+from ..libs.numpy import np
+from ..core.dtype import Int, UInt8, UInt32, Float32
 
 
 def shift_scale(value: Union[np.ndarray, Numeric], old_scale: GetItem, new_scale: GetItem):

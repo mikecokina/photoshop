@@ -1,5 +1,5 @@
 import cv2
-import numpy as np
+from .libs.numpy import np
 
 
 # noinspection PyUnresolvedReferences

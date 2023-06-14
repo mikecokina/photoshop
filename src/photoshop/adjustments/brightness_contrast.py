@@ -1,13 +1,13 @@
 from abc import abstractmethod
 from typing import Union, Tuple
 
-from photoshop._interface import Command
-from photoshop.core.error import ValidationError
-from photoshop.core.typing import GetItem, SetItem
-from photoshop.libs.numpy import np
-from photoshop.core.dtype import UInt8, Int, Float, UInt32, Bool
-from photoshop.ops.hist import histogram_clip
-from photoshop.ops.transform import uint32_to_rgba, rgba_to_gray
+from .._interface import Command
+from ..core.error import ValidationError
+from ..core.typing import GetItem, SetItem
+from ..libs.numpy import np
+from ..core.dtype import UInt8, Int, Float, UInt32, Bool
+from ..ops.hist import histogram_clip
+from ..ops.transform import uint32_to_rgba, rgba_to_gray
 
 
 class AbstractPhotopeaReceiver(object):
@@ -199,7 +199,7 @@ class PhotopeaReceiver(AbstractPhotopeaReceiver):
             hrzn, vrtc = list(zip(*rb))
             vector = cls.adjustment_vector_estimator(hrzn, vrtc, adjustment_vector_size)
 
-            # Adjust values for brightness lower then 0.
+            # Adjust values for brightness lower than 0.
             if brightness < 0:
                 x = [*np.zeros(adjustment_vector_size)]
                 inverse_size = 1 / adjustment_vector_size
