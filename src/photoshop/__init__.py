@@ -6,11 +6,14 @@ from .adjustments.brightness_contrast import auto_contrast__
 from .filters.distort.displacement import displacement__
 
 
-class Adjustments(object):
-    brigthness = brightness__
-    contrast = contrast__
-    brightness_contrast = brightness_contrast__
-    auto_contrast = auto_contrast__
+class Image(object):
+    class Adjustments(object):
+        brigthness = brightness__
+        contrast = contrast__
+        brightness_contrast = brightness_contrast__
+        auto_contrast = auto_contrast__
+
+    adjustments = Adjustments()
 
 
 class Filters(object):
@@ -20,7 +23,7 @@ class Filters(object):
     distort = Distort()
 
 
-adjustments = Adjustments()
+image = Image()
 filters = Filters()
 
 
@@ -28,6 +31,6 @@ __version__ = '0.0.0.dev0'
 
 
 __all__ = (
-    'adjustments',
+    'image',
     'filters'
 )
