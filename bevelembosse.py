@@ -98,6 +98,13 @@ def soften_normals(normals, kernel=None) -> np.ndarray:
     return ndi.convolve(normals, kernel)
 
 
+def rescale_array(arr, new_min, new_max):
+    old_min = np.min(arr)
+    old_max = np.max(arr)
+    scaled_arr = np.interp(arr, (old_min, old_max), (new_min, new_max))
+    return scaled_arr
+
+
 if __name__ == '__main__':
     """
     Photoshop's Bevel and Emboss works predictably:
@@ -144,71 +151,100 @@ if __name__ == '__main__':
         depth=depth_
     )
     original_lighting_intensity = lighting_intensity.copy()
+    softened_normals = soften_normals(lighting_intensity)
+    lighting_intensity = rescale_array(
+        softened_normals,
+        new_min=original_lighting_intensity.min(),
+        new_max=original_lighting_intensity.max()
+    )
 
-    highlight_color_layer = np.ones((*lighting_intensity.shape, 4), dtype=UInt8)
+    hi_light_intensity = lighting_intensity.copy()
+
+    # Rescale the array to the range -1 to 1
+    lo_lighting_intensity = rescale_array(lighting_intensity, new_min=-1, new_max=1)
+
+    # lighting_intensity = np.clip(lighting_intensity, -1.0, 1.0)
+    # lighting_intensity = softened_normals
+
+    # Highlights
+    highlight_color_layer = np.ones((*hi_light_intensity.shape, 4), dtype=UInt8)
     highlight_color_layer[:, :, 0] = 255
     highlight_color_layer[:, :, 1] = 255
     highlight_color_layer[:, :, 2] = 255
     highlight_color_layer[:, :, 3] = 255
-    highlight_mask = np.zeros(lighting_intensity.shape, dtype=UInt8)
-    highlight_mask[lighting_intensity >= 0] = lighting_intensity[lighting_intensity >= 0] * 255
+    highlight_mask = np.zeros(hi_light_intensity.shape, dtype=UInt8)
+    highlight_mask[hi_light_intensity >= 0] = hi_light_intensity[hi_light_intensity >= 0] * 255
 
-    # softened_normals = soften_normals(lighting_intensity)
-    # lighting_intensity = np.clip(softened_normals, -3, 3)
-    # # lighting_intensity = np.clip(lighting_intensity, -1, 1)
-    #
-    # highlight_mask = np.zeros(lighting_intensity.shape, dtype=UInt8)
-    # shadow_mask = np.zeros(lighting_intensity.shape, dtype=UInt8)
-    #
-    # highlight_mask[lighting_intensity >= 0] = lighting_intensity[lighting_intensity >= 0] * 255
-    # shadow_mask[lighting_intensity < 0] = lighting_intensity[lighting_intensity < 0] * -255
+    # Shadows
+    shadows_color_layer = np.ones((*lo_lighting_intensity.shape, 4), dtype=UInt8)
+    shadows_color_layer[:, :, 0] = 0
+    shadows_color_layer[:, :, 1] = 0
+    shadows_color_layer[:, :, 2] = 0
+    shadows_color_layer[:, :, 3] = 255
+    shadows_mask = np.zeros(lo_lighting_intensity.shape, dtype=UInt8)
+    shadows_mask[lo_lighting_intensity < 0] = lo_lighting_intensity[lo_lighting_intensity < 0] * -255
 
-    # print()
+    # Apply Highlights Only
     background = image_.copy()
     foreground = highlight_color_layer.copy()
     foreground[:, :, 3] = highlight_mask
+    hi_img_out = normal(foreground, background, opacity=1.0)
 
-    img_out = normal(foreground, image_, opacity=1.0)
+    # Apply Shadows Only
+    background = image_.copy()
+    foreground = shadows_color_layer.copy()
+    foreground[:, :, 3] = shadows_mask
+    lo_img_out = normal(foreground, background, opacity=1.0)
 
-    # highlight_color = np.ones((*gray_.shape, 3), dtype=UInt8)
-    # highlight_color[:, :, 0] = 255
-    #
-    # shadow_color = np.array([0, 0, 1])
+    # Apply Shadows Upon Highligh Blended
+    background = np.dstack((hi_img_out.copy(), np.ones(gray_.shape, dtype=UInt8)))
+    background[:, :, 3] = 255
+    foreground = shadows_color_layer.copy()
+    foreground[:, :, 3] = shadows_mask
+    img_out = normal(foreground, background, opacity=1.0)
 
-    # highlight_layer = tint_layer(image_[:, :, :3], highlight_mask, highlight_color, blend_mode, opacity)
-    # shadow_layer = tint_layer(image_, shadow_mask, shadow_color, blend_mode, opacity)
+    # Plot results
+    fig, axs = plt.subplots(nrows=4, ncols=3)
 
-    fig, axs = plt.subplots(nrows=3, ncols=3)
+    # Row 0
     axs[0][0].imshow(image_, cmap='gray')
+    axs[0][0].set_title("Original RGBA", fontsize=10)
     axs[0][1].imshow(gray_, cmap='gray')
-    axs[0][2].imshow(dist_transform, cmap='gray')
+    axs[0][1].set_title("Gray", fontsize=10)
+    axs[0][2].imshow(bump_map, cmap='gray')
+    axs[0][2].set_title("Bump Map", fontsize=10)
 
-    axs[1][0].imshow(bump_map, cmap='gray')
-    axs[1][1].imshow(original_lighting_intensity, cmap='gray')
-    axs[1][2].imshow(highlight_color_layer)
+    # Row 1
+    axs[1][0].imshow(original_lighting_intensity, cmap='gray')
+    axs[1][0].set_title("Light Intensity", fontsize=10)
+    axs[1][1].imshow(highlight_color_layer, cmap='gray')
+    axs[1][1].set_title("Hi Color", fontsize=10)
+    axs[1][2].imshow(shadows_color_layer, cmap='gray')
+    axs[1][2].set_title("Lo Color", fontsize=10)
 
+    # Row 2
     axs[2][0].imshow(highlight_mask, cmap='gray')
-    axs[2][1].imshow(background)
-    axs[2][2].imshow(img_out)
-    plt.show()
+    axs[2][0].set_title("Hi Mask", fontsize=10)
+    axs[2][1].imshow(shadows_mask, cmap='gray')
+    axs[2][1].set_title("Lo Mask", fontsize=10)
+    axs[2][2].imshow(hi_img_out)
+    axs[2][2].set_title("Hi Normal Blend", fontsize=10)
 
-    #
-    # # work_rgb = get_work_rgb(image_)
-    #
-    # # Apply lights to mask hi.
-    # mask_hi = np.ones((*gray_.shape, 3), dtype=UInt8)
-    # mask_hi[:, :, 1] = 255
-    # with_lights = apply_lights(mask_hi, mask_hi, incident_lights)
-    #
-    # # mask_rgb = np.ones((*gray_.shape, 3), dtype=Float) * np.expand_dims(with_lights, 2)
-    #
-    # # bg, bg_alpha = np.zeros(image.shape, dtype=UInt8), np.zeros(dist_mask.shape, dtype=UInt8)
-    # # image = normal_blend(image, dist_mask, bg, bg_alpha, opacity=0.75)
-    #
-    # # image = fg_rgb * fg_a * opacity + bg_rgb * bg_a * (1 - fg_a * opacity)
-    # image = with_lights * np.expand_dims(gray_, 2)
-    #
-    # fig, axs = plt.subplots(nrows=1, ncols=3)
-    # axs[0].imshow(gray_)
-    # axs[1].imshow(with_lights)
-    # plt.show()
+    # Row 3
+    axs[3][0].imshow(lo_img_out)
+    axs[3][0].set_title("Lo Normal Blend", fontsize=10)
+    axs[3][1].imshow(img_out)
+    axs[3][1].set_title("Result", fontsize=10)
+
+    # axs[3][1].imshow(lo_img_out)
+    # axs[3][2].set_title("Lo Blend Normal", fontsize=10)
+
+    # axs[3][0].imshow(shadows_mask, cmap='gray')
+    # axs[2][1].imshow(background)
+    # axs[2][2].imshow(img_out)
+
+    # [ax.set_axis_off() for ax in axs.ravel()]
+    [ax.tick_params(left=False, right=False, labelleft=False, labelbottom=False, bottom=False)
+     for ax in axs.ravel()]
+    plt.axis('off')
+    plt.show()
