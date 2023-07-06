@@ -3,6 +3,7 @@ from typing import Tuple
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
+from PIL import Image
 
 from photoshop.blend.methods import normal
 from photoshop.core.dtype import Float32
@@ -49,3 +50,11 @@ def drop_shadow(
 
     plt.imshow(img_out)
     plt.show()
+
+
+# Load the input image
+# noinspection PyTypeChecker
+input_image = np.asarray(Image.open('/home/mike/Projects/photoshop/with_opcaity.png'))
+
+# Apply the drop shadow effect
+drop_shadow(input_image, color=(0, 255, 0), opacity=1.0, size=1, distance=30, angle=145)
