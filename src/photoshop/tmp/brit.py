@@ -6,6 +6,10 @@ import numpy as np
 
 
 # noinspection PyUnresolvedReferences
+from photoshop.adjustments.brightness_contrast import AutoCntrReceiver, auto_contrast__
+from photoshop.core.dtype import UInt8, UInt32
+
+
 def load_rgb(path: str) -> np.ndarray:
     bgra = cv2.imread(path, cv2.IMREAD_UNCHANGED)
     return cv2.cvtColor(bgra, cv2.COLOR_BGRA2RGBA)
@@ -234,14 +238,6 @@ def J_kK_transform(w, n, m):
 
 
 def get_legacy_transformer(brightness_, contrast_):
-    """
-    var Q = brightness_ / 255, Z = 1 + contrast_ / 100;
-    if (Z > 1) Z = 1 + Math.tan(Math.PI / 2 * contrast_ / 101);
-    var h = (1 - Z) / 2, j = J.kK.uw(Q, Q, Q), f = [Z, 0, 0, h, 0, Z, 0, h, 0, 0, Z, h, 0, 0, 0, 1],
-        D = J.kK.multiply(f, j), Y = new J.UH(256);
-    for (var X = 0; X < 256; X++) Y.p[X] = X;
-    J.kK.transform(Y, Y, D);
-    """
     Q = brightness_ / 255
     Z = 1 + contrast_ / 100
 
@@ -265,50 +261,29 @@ def get_legacy_transformer(brightness_, contrast_):
     return Y['p']
 
 
-def britcntr(rgba, brightnes_, contrast_):
-    img = rgba.copy()
-    img = img + brightnes_
-    img = np.clip(img, 0, 255)
-
-    old_scale_min = -100.0
-    old_scale_max = 100.0
-    new_scale_min = -255.0
-    new_scale_max = 255.0
-
-    old_scale_range = old_scale_max - old_scale_min
-    new_scale_range = new_scale_max - new_scale_min
-
-    # 0 to 129.5
-    contrast = ((contrast_ - old_scale_min) * new_scale_range / old_scale_range) + new_scale_min
-    factor = (259.0 * (contrast + 255.0)) / (255.0 * (259.0 - contrast))
-
-    img = factor * (img - 128) + 128
-    img = np.clip(img, 0, 255)
-
-    return img
-
-
 def main():
-    path = "/home/mike/Projects/photoshop/banner-4-medium.jpg"
-    rgb_orig = load_rgb(path).astype(np.uint32)
+    from photoshop import brightness_contrast
+    # from photoshop._io import load_rgba
+    #
+    # path = "/home/mike/Projects/photoshop/banner-4-medium.jpg"
+    # rgb_orig = load_rgba(path).astype(np.uint8)
+    # img = brightness_contrast(rgb_orig, contrast=50, brightness=50, use_legacy=True)
+    #
+    # fix, axs = plt.subplots(nrows=1, ncols=2)
+    # axs[0].imshow(rgb_orig)
+    # axs[1].imshow(img)
+    # plt.show()
 
-    brit, cntr = 0, 100
+    path = "/home/mike/Projects/diffusion/images/img2img/005/008/00063-4132985372.png"
+    rgba = load_rgb(path).astype(np.uint8)
 
-    transformer_vec = get_legacy_transformer(brightness_=brit, contrast_=cntr)
-    uint32 = transform(rgb_orig, transformer_vec)
-    rgb_brit = uint32_to_rgb(uint32, *rgb_orig.shape[:2][::-1])
-
-    rgb_std = britcntr(rgb_orig, brightnes_=brit, contrast_=cntr)
+    rgba_auto = auto_contrast__(rgba)
 
     fix, axs = plt.subplots(nrows=1, ncols=3)
-    axs[0].imshow(rgb_orig)
-    axs[1].imshow(rgb_brit)
-    axs[2].imshow(rgb_std)
+    # axs[0].imshow(rgba_std)
+    axs[1].imshow(rgba)
+    axs[2].imshow(rgba_auto)
     plt.show()
-
-
-
-
 
     # from photoshop import brightness
     # from photoshop._io import load_rgba
