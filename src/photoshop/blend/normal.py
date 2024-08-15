@@ -1,24 +1,32 @@
 from typing import Tuple
 
-from ..core.dtype import Int, UInt8, Float32
+from ..core.dtype import Int, UInt8, Float32, Float
 from ..libs.numpy import np
 from ..ops.transform import rgb_to_luminosity, expand_as_rgba
 
 
-def _normal_blend(fg_rgb: np.ndarray, fg_a: np.ndarray, bg_rgb: np.ndarray, bg_a: np.ndarray) -> np.ndarray:
+def normal_blend(
+        fg_rgb: np.ndarray,
+        fg_a: np.ndarray,
+        bg_rgb: np.ndarray,
+        bg_a: np.ndarray,
+        opacity: Float = 1.0,
+
+) -> np.ndarray:
     """
     Provides normal blending.
-    Do not use outside of this scope.
 
+    :param opacity: Float; opacity in rage [0 - 1]
     :param fg_rgb: np.ndarray; numpy array of shape (h, w, 3)
     :param fg_a: np.ndarray; numpy array of shape (h, w) or (h, w, 1)
     :param bg_rgb: np.ndarray; numpy array of shape (h, w, 3)
     :param bg_a: np.ndarray; numpy array of shape (h, w) or (h, w, 1)
     :return: np.ndarray; numpy array of shape (h, w, 3)
     """
+    # TODO: use normal blend from methods
     fg_a = np.expand_dims(fg_a, 2) if len(fg_a.shape) == 2 else fg_a
     bg_a = np.expand_dims(bg_a, 2) if len(bg_a.shape) == 2 else bg_a
-    return fg_rgb * fg_a + bg_rgb * bg_a * (1 - fg_a)
+    return fg_rgb * fg_a * opacity + bg_rgb * bg_a * (1 - fg_a * opacity)
 
 
 def _normal_blend_if(
@@ -65,7 +73,7 @@ def _normal_blend_if(
 
     # Conditional blending
     args_ = (foreground_rgb, foreground_a, background_rgb, background_a)
-    blended_rgb = np.where(blend_if, _normal_blend(*args_), background_rgb)
+    blended_rgb = np.where(blend_if, normal_blend(*args_), background_rgb)
     blended_a = np.where(blend_if, foreground_a + background_a * (1 - foreground_a), background_a)
 
     # Combine the blended channels back into a single RGBA image
@@ -155,17 +163,17 @@ def normal_blend_if(
     blended_rgb[bg_condition] = bg_rgb[bg_condition]
 
     # Blending within middle range
-    blended_ = _normal_blend(fg_rgb, fg_a, bg_rgb, bg_a)
+    blended_ = normal_blend(fg_rgb, fg_a, bg_rgb, bg_a)
     blended_rgb[blending_condition] = blended_[blending_condition]
 
     # Blending within shadows range
     fg_a[shadows_condition] = (fg_a * shadow_factor)[shadows_condition]
-    shadows_blended_ = _normal_blend(fg_rgb, fg_a, bg_rgb, bg_a)
+    shadows_blended_ = normal_blend(fg_rgb, fg_a, bg_rgb, bg_a)
     blended_rgb[shadows_condition] = shadows_blended_[shadows_condition]
 
     # Blending within highlights range
     fg_a[highlights_condition] = (fg_a * (1 - highlight_factor))[highlights_condition]
-    highlights_blended_ = _normal_blend(fg_rgb, fg_a, bg_rgb, bg_a)
+    highlights_blended_ = normal_blend(fg_rgb, fg_a, bg_rgb, bg_a)
     blended_rgb[highlights_condition] = highlights_blended_[highlights_condition]
 
     # Transform image to Uint8 form
