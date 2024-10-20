@@ -2,11 +2,35 @@ from PIL import Image
 import numpy as np
 
 
-def lofi(image: Image.Image) -> Image.Image:
+def lofi(image: Image.Image, strength: float = 1.0) -> Image.Image:
+    """
+    Apply the Lo-Fi filter with a given strength.
+    :param image: The input PIL Image.
+    :param strength: Strength of the filter from 0.0 (no filter) to 1.0 (full filter).
+    :return: The filtered PIL Image.
+    """
+    # Ensure strength is clamped between 0 and 1
+    strength = max(0., min(1., strength))
+
     # Apply contrast and saturation adjustments
-    image = adjust_contrast(image, 0.15)
-    image = adjust_saturation(image, 0.2)
-    return image
+    adjusted_image = adjust_contrast(image, 0.15)
+    adjusted_image = adjust_saturation(adjusted_image, 0.2)
+
+    if strength < 1.0:
+        # Blend between the original and adjusted image based on strength
+        # noinspection PyTypeChecker
+        adjusted_arr = np.array(adjusted_image.convert('RGBA'), dtype=np.float32)
+        # noinspection PyTypeChecker
+        original_arr = np.array(image.convert('RGBA'), dtype=np.float32)
+
+        # Interpolate between original and adjusted based on strength
+        blended_arr = (1 - strength) * original_arr + strength * adjusted_arr
+        blended_arr = np.clip(blended_arr, 0, 255).astype(np.uint8)
+
+        # Convert back to PIL image
+        return Image.fromarray(blended_arr).convert(image.mode)
+
+    return adjusted_image
 
 
 def adjust_contrast(image: Image.Image, adj: float) -> Image.Image:
@@ -57,5 +81,5 @@ def adjust_saturation(image: Image.Image, adj: float) -> Image.Image:
 
 # Usage example
 image_ = Image.open("/home/mike/Downloads/PXL_20241019_160706455_EDIT.png")
-lofi_image = lofi(image_)
+lofi_image = lofi(image_, strength=1.0)
 lofi_image.show()  # Display the modified image
