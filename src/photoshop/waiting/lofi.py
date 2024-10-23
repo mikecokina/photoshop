@@ -27,9 +27,113 @@ class AbstractFilter(object):
 
 class Filters(AbstractFilter):
     @classmethod
-    def lofi(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
-        adjusted_image = adjust_contrast(image, 0.15)
-        adjusted_image = adjust_saturation(adjusted_image, 0.2)
+    def clarendon(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
+        adjusted_image = adjust_brightness(image, .1)
+        adjusted_image = adjust_contrast(adjusted_image, .1)
+        adjusted_image = adjust_saturation(adjusted_image, .15)
+        return cls._apply_strength(image, adjusted_image, strength=strength)
+
+    @classmethod
+    def gingham(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
+        adjusted_image = sepia(image, .04)
+        adjusted_image = adjust_contrast(adjusted_image, -.15)
+        return cls._apply_strength(image, adjusted_image, strength=strength)
+
+    @classmethod
+    def moon(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
+        adjusted_image = grayscale(image)
+        adjusted_image = adjust_contrast(adjusted_image, -.04)
+        adjusted_image = adjust_brightness(adjusted_image, .1)
+        return cls._apply_strength(image, adjusted_image, strength=strength)
+
+    @classmethod
+    def lark(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
+        adjusted_image = adjust_brightness(image, .08)
+        adjusted_image = rgb_adjust(adjusted_image, [1, 1.03, 1.05])
+        adjusted_image = adjust_saturation(adjusted_image, .12)
+        return cls._apply_strength(image, adjusted_image, strength=strength)
+
+    @classmethod
+    def reyes(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
+        adjusted_image = sepia(image, .4)
+        adjusted_image = adjust_brightness(adjusted_image, .13)
+        adjusted_image = adjust_contrast(adjusted_image, -.05)
+        return cls._apply_strength(image, adjusted_image, strength=strength)
+
+    @classmethod
+    def juno(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
+        adjusted_image = rgb_adjust(image, [1.01, 1.04, 1])
+        adjusted_image = adjust_saturation(adjusted_image, .3)
+        return cls._apply_strength(image, adjusted_image, strength=strength)
+
+
+    @classmethod
+    def slumber(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
+        adjusted_image = adjust_brightness(image, .1)
+        adjusted_image = adjust_saturation(adjusted_image, -.5)
+        return cls._apply_strength(image, adjusted_image, strength=strength)
+
+    @classmethod
+    def crema(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
+        # Apply RGB adjustment
+        adjusted_image = rgb_adjust(image, [1.04, 1, 1.02])
+        # Apply saturation adjustment
+        adjusted_image = adjust_saturation(adjusted_image, -0.05)
+        # Apply strength blending
+        return cls._apply_strength(image, adjusted_image, strength=strength)
+
+    @classmethod
+    def ludwig(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
+        # Apply brightness adjustment
+        adjusted_image = adjust_brightness(image, 0.05)
+        # Apply saturation adjustment
+        adjusted_image = adjust_saturation(adjusted_image, -0.03)
+        # Apply strength blending
+        return cls._apply_strength(image, adjusted_image, strength=strength)
+
+    @classmethod
+    def aden(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
+        # Apply color filter
+        adjusted_image = color_filter(image, [228, 130, 225], 0.13)
+        # Apply saturation adjustment
+        adjusted_image = adjust_saturation(adjusted_image, -0.2)
+        # Apply strength blending
+        return cls._apply_strength(image, adjusted_image, strength=strength)
+
+    @classmethod
+    def perpetua(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
+        # Apply RGB adjustment
+        adjusted_image = rgb_adjust(image, [1.05, 1.1, 1.0])
+        # Apply strength blending
+        return cls._apply_strength(image, adjusted_image, strength=strength)
+
+    @classmethod
+    def amaro(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
+        # Apply saturation adjustment
+        adjusted_image = adjust_saturation(image, 0.3)
+        # Apply brightness adjustment
+        adjusted_image = adjust_brightness(adjusted_image, 0.15)
+        # Apply strength blending
+        return cls._apply_strength(image, adjusted_image, strength=strength)
+
+    @classmethod
+    def mayfair(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
+        # Apply color filter
+        adjusted_image = color_filter(image, [230, 115, 108], 0.05)
+        # Apply saturation adjustment
+        adjusted_image = adjust_saturation(adjusted_image, 0.15)
+        # Apply strength blending
+        return cls._apply_strength(image, adjusted_image, strength=strength)
+
+    @classmethod
+    def rise(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
+        # Apply color filter
+        adjusted_image = color_filter(image, [255, 170, 0], 0.1)
+        # Apply brightness adjustment
+        adjusted_image = adjust_brightness(adjusted_image, 0.09)
+        # Apply saturation adjustment
+        adjusted_image = adjust_saturation(adjusted_image, 0.1)
+        # Apply strength blending
         return cls._apply_strength(image, adjusted_image, strength=strength)
 
     @classmethod
@@ -53,25 +157,195 @@ class Filters(AbstractFilter):
         return cls._apply_strength(image, adjusted_image, strength=strength)
 
     @classmethod
+    def willow(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
+        # Apply grayscale filter
+        adjusted_image = grayscale(image)
+        # Apply color filter
+        adjusted_image = color_filter(adjusted_image, [100, 28, 210], 0.03)
+        # Apply brightness adjustment
+        adjusted_image = adjust_brightness(adjusted_image, 0.1)
+        # Apply strength blending
+        return cls._apply_strength(image, adjusted_image, strength=strength)
+
+    @classmethod
+    def lofi(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
+        adjusted_image = adjust_contrast(image, 0.15)
+        adjusted_image = adjust_saturation(adjusted_image, 0.2)
+        return cls._apply_strength(image, adjusted_image, strength=strength)
+
+    @classmethod
+    def inkwell(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
+        # Apply grayscale filter
+        adjusted_image = grayscale(image)
+        # Apply strength blending (no blending needed here since strength is not adjustable)
+        return cls._apply_strength(image, adjusted_image, strength=strength)
+
+    @classmethod
+    def nashville(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
+        # Apply color filter
+        adjusted_image = color_filter(image, [220, 115, 188], 0.12)
+        # Apply contrast adjustment
+        adjusted_image = adjust_contrast(adjusted_image, -0.05)
+        # Apply strength blending
+        return cls._apply_strength(image, adjusted_image, strength=strength)
+
+    # Other than intagram
+    @classmethod
     def skyline(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
         adjusted_image = adjust_saturation(image, .35)
         adjusted_image = adjust_brightness(adjusted_image, .1)
         return cls._apply_strength(image, adjusted_image, strength=strength)
 
-
     @classmethod
-    def lark(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
-        adjusted_image = adjust_brightness(image, .08)
-        adjusted_image = rgb_adjust(adjusted_image, [1, 1.03, 1.05])
-        adjusted_image = adjust_saturation(adjusted_image, .12)
+    def hefe(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
+        # Apply contrast adjustment
+        adjusted_image = adjust_contrast(image, 0.1)
+        # Apply saturation adjustment
+        adjusted_image = adjust_saturation(adjusted_image, 0.15)
+        # Apply strength blending
         return cls._apply_strength(image, adjusted_image, strength=strength)
 
     @classmethod
-    def moon(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
-        adjusted_image = grayscale(image)
-        adjusted_image = adjust_contrast(adjusted_image, -.04)
-        adjusted_image = adjust_brightness(adjusted_image, .1)
+    def hudson(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
+        adjusted_image = rgb_adjust(image, [1, 1, 1.25])
+        adjusted_image = adjust_contrast(adjusted_image, 0.1)
+        adjusted_image = adjust_brightness(adjusted_image, 0.15)
         return cls._apply_strength(image, adjusted_image, strength=strength)
+
+    @classmethod
+    def stinson(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
+        adjusted_image = adjust_brightness(image, 0.1)
+        adjusted_image = sepia(adjusted_image, 0.3)
+        return cls._apply_strength(image, adjusted_image, strength=strength)
+
+    @classmethod
+    def vesper(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
+        adjusted_image = color_filter(image, [255, 225, 0], 0.05)
+        adjusted_image = adjust_brightness(adjusted_image, 0.06)
+        adjusted_image = adjust_contrast(adjusted_image, 0.06)
+        return cls._apply_strength(image, adjusted_image, strength=strength)
+
+    @classmethod
+    def earlybird(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
+        adjusted_image = color_filter(image, [255, 165, 40], 0.2)
+        return cls._apply_strength(image, adjusted_image, strength=strength)
+
+    @classmethod
+    def brannan(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
+        adjusted_image = adjust_contrast(image, 0.2)
+        adjusted_image = color_filter(adjusted_image, [140, 10, 185], 0.1)
+        return cls._apply_strength(image, adjusted_image, strength=strength)
+
+    @classmethod
+    def sutro(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
+        adjusted_image = adjust_brightness(image, -0.1)
+        adjusted_image = adjust_saturation(adjusted_image, -0.1)
+        return cls._apply_strength(image, adjusted_image, strength=strength)
+
+    @classmethod
+    def toaster(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
+        adjusted_image = sepia(image, 0.1)
+        adjusted_image = color_filter(adjusted_image, [255, 145, 0], 0.2)
+        return cls._apply_strength(image, adjusted_image, strength=strength)
+
+    @classmethod
+    def walden(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
+        adjusted_image = adjust_brightness(image, 0.1)
+        adjusted_image = color_filter(adjusted_image, [255, 255, 0], 0.2)
+        return cls._apply_strength(image, adjusted_image, strength=strength)
+
+    @classmethod
+    def f1977(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
+        adjusted_image = color_filter(image, [255, 25, 0], 0.15)
+        adjusted_image = adjust_brightness(adjusted_image, 0.1)
+        return cls._apply_strength(image, adjusted_image, strength=strength)
+
+    @classmethod
+    def kelvin(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
+        adjusted_image = color_filter(image, [255, 140, 0], 0.1)
+        adjusted_image = rgb_adjust(adjusted_image, [1.15, 1.05, 1])
+        adjusted_image = adjust_saturation(adjusted_image, 0.35)
+        return cls._apply_strength(image, adjusted_image, strength=strength)
+
+    @classmethod
+    def maven(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
+        adjusted_image = color_filter(image, [225, 240, 0], 0.1)
+        adjusted_image = adjust_saturation(adjusted_image, 0.25)
+        adjusted_image = adjust_contrast(adjusted_image, 0.05)
+        return cls._apply_strength(image, adjusted_image, strength=strength)
+
+    @classmethod
+    def ginza(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
+        adjusted_image = sepia(image, 0.06)
+        adjusted_image = adjust_brightness(adjusted_image, 0.1)
+        return cls._apply_strength(image, adjusted_image, strength=strength)
+
+    @classmethod
+    def skyline(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
+        adjusted_image = adjust_saturation(image, 0.35)
+        adjusted_image = adjust_brightness(adjusted_image, 0.1)
+        return cls._apply_strength(image, adjusted_image, strength=strength)
+
+    @classmethod
+    def dogpatch(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
+        adjusted_image = adjust_contrast(image, 0.15)
+        adjusted_image = adjust_brightness(adjusted_image, 0.1)
+        return cls._apply_strength(image, adjusted_image, strength=strength)
+
+    @classmethod
+    def brooklyn(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
+        adjusted_image = color_filter(image, [25, 240, 252], 0.05)
+        adjusted_image = sepia(adjusted_image, 0.3)
+        return cls._apply_strength(image, adjusted_image, strength=strength)
+
+    @classmethod
+    def helena(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
+        adjusted_image = color_filter(image, [208, 208, 86], 0.2)
+        adjusted_image = adjust_contrast(adjusted_image, 0.15)
+        return cls._apply_strength(image, adjusted_image, strength=strength)
+
+    @classmethod
+    def ashby(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
+        adjusted_image = color_filter(image, [255, 160, 25], 0.1)
+        adjusted_image = adjust_brightness(adjusted_image, 0.1)
+        return cls._apply_strength(image, adjusted_image, strength=strength)
+
+    @classmethod
+    def charmes(cls, image: Image.Image, strength: float = 1.0) -> Image.Image:
+        adjusted_image = color_filter(image, [255, 50, 80], 0.12)
+        adjusted_image = adjust_contrast(adjusted_image, 0.05)
+        return cls._apply_strength(image, adjusted_image, strength=strength)
+
+
+def sepia(image: Image.Image,  adj: float) -> Image.Image:
+    # Store the original image mode
+    image_mode = image.mode
+
+    # Convert the image to RGBA format
+    image = image.convert('RGBA')
+
+    # Convert the image to a numpy array of float32
+    # noinspection PyTypeChecker
+    arr = np.array(image, dtype=np.float32)
+
+    # Extract R, G, B channels
+    r, g, b = arr[..., 0], arr[..., 1], arr[..., 2]
+
+    # Apply the filter formula (similar to sepia or vintage filters)
+    new_r = r * (1 - 0.607 * adj) + g * 0.769 * adj + b * 0.189 * adj
+    new_g = r * 0.349 * adj + g * (1 - 0.314 * adj) + b * 0.168 * adj
+    new_b = r * 0.272 * adj + g * 0.534 * adj + b * (1 - 0.869 * adj)
+
+    # Assign the new color values back to the array
+    arr[..., 0] = new_r
+    arr[..., 1] = new_g
+    arr[..., 2] = new_b
+
+    # Clamp the values to [0, 255] and convert back to uint8
+    arr = np.clip(arr, 0, 255).astype(np.uint8)
+
+    # Convert back to PIL image while preserving the original mode
+    return Image.fromarray(arr, mode='RGBA').convert(image_mode)
 
 
 def grayscale(image: Image.Image) -> Image.Image:
@@ -209,5 +483,5 @@ def rgb_adjust(image: Image.Image, rgb_adj: list) -> Image.Image:
 
 # Usage example
 image_ = Image.open("/home/mike/Downloads/PXL_20241019_160706455_EDIT.png")
-lofi_image = Filters.moon(image_, strength=1.0)
+lofi_image = Filters.f1977(image_, strength=1.0)
 lofi_image.show()  # Display the modified image
