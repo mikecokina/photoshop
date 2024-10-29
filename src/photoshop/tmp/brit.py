@@ -1,5 +1,3 @@
-import time
-
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,7 +9,9 @@ from photoshop.core.dtype import UInt8, UInt32
 
 
 def load_rgb(path: str) -> np.ndarray:
+    # noinspection PyUnresolvedReferences
     bgra = cv2.imread(path, cv2.IMREAD_UNCHANGED)
+    # noinspection PyUnresolvedReferences
     return cv2.cvtColor(bgra, cv2.COLOR_BGRA2RGBA)
 
 
@@ -262,27 +262,19 @@ def get_legacy_transformer(brightness_, contrast_):
 
 
 def main():
-    from photoshop import brightness_contrast
-    # from photoshop._io import load_rgba
-    #
-    # path = "/home/mike/Projects/photoshop/banner-4-medium.jpg"
-    # rgb_orig = load_rgba(path).astype(np.uint8)
-    # img = brightness_contrast(rgb_orig, contrast=50, brightness=50, use_legacy=True)
-    #
-    # fix, axs = plt.subplots(nrows=1, ncols=2)
-    # axs[0].imshow(rgb_orig)
-    # axs[1].imshow(img)
-    # plt.show()
+    from photoshop import image
+    from photoshop import filters
 
-    path = "/home/mike/Projects/diffusion/images/img2img/005/008/00063-4132985372.png"
+    path = "/home/mike/Downloads/art_art__d45674d8b19275265338b3e7_crop087d84__dma_sd_xmas__0_cleanup.png"
     rgba = load_rgb(path).astype(np.uint8)
 
-    rgba_auto = auto_contrast__(rgba)
+    # rgba_applied = image.Adjustments.auto_contrast(rgba)
 
-    fix, axs = plt.subplots(nrows=1, ncols=3)
-    # axs[0].imshow(rgba_std)
-    axs[1].imshow(rgba)
-    axs[2].imshow(rgba_auto)
+    rgba_applied = filters.Instagram.instagram(rgba, strength=1.0, filter_="lofi")
+
+    fix, axs = plt.subplots(nrows=1, ncols=2)
+    axs[0].imshow(rgba)
+    axs[1].imshow(rgba_applied)
     plt.show()
 
     # from photoshop import brightness

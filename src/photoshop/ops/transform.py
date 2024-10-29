@@ -1,3 +1,4 @@
+import gc
 from typing import Union
 
 import cv2
@@ -39,6 +40,7 @@ def uint32_to_rgba(uint32_img: Union[UInt32, np.ndarray], width: Int, height: In
     b = UInt8(uint32_img >> 16)
     a = UInt8(uint32_img >> 24)
     del uint32_img
+    gc.collect()
     return np.stack([r, g, b, a]).T.reshape(height, width, 4)
 
 

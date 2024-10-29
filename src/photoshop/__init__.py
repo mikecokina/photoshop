@@ -4,6 +4,7 @@ from .adjustments.brightness_contrast import brightness_contrast__
 from .adjustments.brightness_contrast import auto_contrast__
 
 from .filters.distort.displacement import displacement__
+from .filters.instagram.filters import instagram__
 
 
 class Image(object):
@@ -19,6 +20,9 @@ class Image(object):
 class Filters(object):
     class Distort(object):
         displacement = displacement__
+
+    class Instagram(object):
+        instagram = instagram__
 
     distort = Distort()
 
